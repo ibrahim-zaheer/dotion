@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Task
-from .forms import TaskForm
+from .models import Task,Category,UniqueLink
+from .forms import TaskForm,TaskFilterForm
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
@@ -10,6 +10,9 @@ from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.views.decorators.cache import never_cache
 from django.contrib.auth.views import LoginView
+from django.db.models import Q
+from datetime import datetime
+from django.http import HttpResponseBadRequest,HttpResponse
 
 
 # class CustomLoginView(LoginView):
@@ -19,6 +22,7 @@ from django.contrib.auth.views import LoginView
 #         if next_url and next_url.endswith('/login/'):
 #             return redirect('signup')  # Redirect to signup page if 'next' points to login page
 #         return super().get(request, *args, **kwargs)
+
 
 def logouts(request):
     auth_logout(request)
@@ -49,11 +53,36 @@ def login(request):
     return render(request, 'registration/login.html', {'form': form})
 
 
-@never_cache
+# @never_cache
+# @login_required
+# def task_list(request):
+#     tasks = Task.objects.filter(assigned_to=request.user)
+#     return render(request, 'task_manager/task_list.html', {'tasks': tasks})
 @login_required
 def task_list(request):
     tasks = Task.objects.filter(assigned_to=request.user)
-    return render(request, 'task_manager/task_list.html', {'tasks': tasks})
+    form = TaskFilterForm(request.GET)
+
+    if form.is_valid():
+        category = form.cleaned_data.get('category')
+        progress = form.cleaned_data.get('progress')
+        status = form.cleaned_data.get('status')
+        start_date = form.cleaned_data.get('start_date')
+        end_date = form.cleaned_data.get('end_date')
+
+        if category:
+            tasks = tasks.filter(category=category)
+        if progress:
+            tasks = tasks.filter(progress=progress)
+        if status:
+            tasks = tasks.filter(status=status)
+        if start_date:
+            tasks = tasks.filter(due_date__gte=start_date)
+        if end_date:
+            tasks = tasks.filter(due_date__lte=end_date)
+
+    return render(request, 'task_manager/task_list.html', {'tasks': tasks, 'form': form})
+
 @never_cache
 @login_required
 def task_create(request):
@@ -90,3 +119,46 @@ def task_delete(request, pk):
         task.delete()
         return redirect('task_list')
     return render(request, 'task_manager/task_confirm_delete.html', {'task': task})
+
+
+@login_required
+
+def task_detail(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    return render(request, 'task_manager/task_detail.html', {'task': task})
+
+
+
+@login_required
+def generate_unique_link(request, task_id, permission):
+    task = get_object_or_404(Task, pk=task_id)
+    if permission not in ['view', 'edit', 'admin']:
+        return HttpResponseBadRequest("Invalid permission level")
+
+    # Generate a unique URL (you may use UUID or any other method)
+    url = 'http://example.com/' + str(uuid.uuid4())
+
+    # Save the unique link to the database
+    unique_link = UniqueLink.objects.create(url=url, task=task, permission=permission, creator=request.user)
+
+    return HttpResponse(f"Unique link created: {unique_link.url}")
+
+# Example view function to handle access via unique link
+
+
+@login_required
+def handle_unique_link(request, url):
+    unique_link = get_object_or_404(UniqueLink, url=url)
+    task = unique_link.task
+    permission = unique_link.permission
+
+    # Check permissions
+    if permission == 'view':
+        print("hello")
+        # Allow viewing
+    elif permission == 'edit':
+        print("hello")
+        # Allow editing
+    elif permission == 'admin':
+        print("hello")
+        # Allow admin actions

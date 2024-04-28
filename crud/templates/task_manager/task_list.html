@@ -4,10 +4,14 @@
 
 {% block content %}
 <h2>Task List</h2>
+<form method="get" action="{% url 'task_list' %}">
+    {{ form.as_p }}
+    <button type="submit">Filter</button>
+</form>
 <ul>
     {% for task in tasks %}
     <li>
-        <a href="{% url 'task_detail' %}">{{ task.title }}</a> - {{ task.description }}
+        <a href="{% url 'task_detail' pk=task.pk %}">{{ task.title }}</a> - {{ task.description }}
     </li>
     {% endfor %}
 </ul>
