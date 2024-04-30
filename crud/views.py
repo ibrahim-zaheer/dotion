@@ -13,6 +13,7 @@ from django.contrib.auth.views import LoginView
 from django.db.models import Q
 from datetime import datetime
 from django.http import HttpResponseBadRequest,HttpResponse
+import uuid
 
 
 # class CustomLoginView(LoginView):
@@ -130,8 +131,8 @@ def task_detail(request, pk):
 
 
 @login_required
-def generate_unique_link(request, task_id, permission):
-    task = get_object_or_404(Task, pk=task_id)
+def generate_unique_link(request, pk, permission):
+    task = get_object_or_404(Task, pk=pk)
     if permission not in ['view', 'edit', 'admin']:
         return HttpResponseBadRequest("Invalid permission level")
 
@@ -143,10 +144,7 @@ def generate_unique_link(request, task_id, permission):
 
     return HttpResponse(f"Unique link created: {unique_link.url}")
 
-# Example view function to handle access via unique link
 
-
-@login_required
 def handle_unique_link(request, url):
     unique_link = get_object_or_404(UniqueLink, url=url)
     task = unique_link.task
@@ -154,11 +152,11 @@ def handle_unique_link(request, url):
 
     # Check permissions
     if permission == 'view':
-        print("hello")
-        # Allow viewing
+        # Render template for viewing task
+        return render(request, 'task_url/task_view_template.html', {'task': task})
     elif permission == 'edit':
-        print("hello")
-        # Allow editing
+        # Render template for editing task
+        return render(request, 'task_url/task_edit_template.html', {'task': task})
     elif permission == 'admin':
-        print("hello")
-        # Allow admin actions
+        # Render template for admin actions
+        return render(request, 'task_url/task_admin_template.html', {'task': task})

@@ -15,5 +15,10 @@ urlpatterns = [
     path('password_change/', auth_views.PasswordChangeView.as_view(), name='password_change'),
     path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(), name='password_change_done'),
     path('tasks/', views.task_list, name='task_list'),
+    #for generating permission links
+    path('tasks/<int:pk>/permission/<str:permission>',views.generate_unique_link,name="generate_unique_link"),
+   path('task/view/<path:url>/', views.handle_unique_link, name="handle_unique_link")
+
+
     
 ]
